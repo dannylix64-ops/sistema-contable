@@ -53,7 +53,7 @@ def crear_admin():
     db.execute("INSERT INTO usuarios (username, password) VALUES ('admin','1234')")
     db.commit()
     return "Usuario creado"
-    @app.route("/init_db")
+@app.route("/init_db")
 def init_db():
     db = get_db()
 
