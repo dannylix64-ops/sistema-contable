@@ -32,15 +32,24 @@ def login():
 def dashboard():
     db = get_db()
 
-    clientes = db.execute("SELECT * FROM clientes").fetchall()
-    transacciones = db.execute("SELECT * FROM transacciones").fetchall()
+    clientes = db.execute(
+    "SELECT * FROM clientes WHERE usuario_id=?",
+    (session["user_id"],)
+).fetchall()
+    transacciones = db.execute(
+    "SELECT * FROM transacciones WHERE usuario_id=?",
+    (session["user_id"],)
+).fetchall()
 
     return render_template("dashboard.html", clientes=clientes, transacciones=transacciones)
 
 @app.route("/cliente", methods=["POST"])
 def cliente():
     db = get_db()
-    db.execute("INSERT INTO clientes (nombre) VALUES (?)", (request.form["nombre"],))
+    db.execute(
+    "INSERT INTO clientes (nombre, usuario_id) VALUES (?, ?)",
+    (request.form["nombre"], session["user_id"])
+)
     db.commit()
     return redirect("/dashboard")
 
