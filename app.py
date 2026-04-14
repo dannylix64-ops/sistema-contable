@@ -53,5 +53,24 @@ def crear_admin():
     db.execute("INSERT INTO usuarios (username, password) VALUES ('admin','1234')")
     db.commit()
     return "Usuario creado"
+    @app.route("/init_db")
+def init_db():
+    db = get_db()
+
+    db.execute("CREATE TABLE IF NOT EXISTS usuarios (id INTEGER PRIMARY KEY, username TEXT, password TEXT)")
+    db.execute("CREATE TABLE IF NOT EXISTS clientes (id INTEGER PRIMARY KEY, nombre TEXT)")
+
+    db.execute("""
+    CREATE TABLE IF NOT EXISTS transacciones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT,
+        descripcion TEXT,
+        monto REAL,
+        fecha TEXT
+    )
+    """)
+
+    db.commit()
+    return "Base de datos lista"
 if __name__ == "__main__":
     app.run()
