@@ -1,172 +1,91 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sistema Contable</title>
-    <style>
-        body {
-            font-family: Arial;
-            background: #f5f7fb;
-            margin: 0;
-            padding: 0;
-        }
+<title>Sistema Contable</title>
 
-        .container {
-            width: 90%;
-            margin: auto;
-        }
+<style>
+body {font-family: Arial; background:#f5f7fb;}
+.container {width:90%; margin:auto;}
+.card {background:white; padding:15px; margin:10px 0; border-radius:10px;}
+.grid {display:flex; gap:20px;}
+.grid .card {flex:1; text-align:center;}
+button {background:#4CAF50; color:white; border:none; padding:8px;}
+table {width:100%;}
+</style>
 
-        h1 {
-            margin-top: 20px;
-        }
-
-        .card {
-            background: white;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 10px;
-            box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .grid {
-            display: flex;
-            gap: 20px;
-        }
-
-        .grid .card {
-            flex: 1;
-            text-align: center;
-            font-size: 18px;
-        }
-
-        input, select {
-            padding: 8px;
-            margin: 5px;
-        }
-
-        button {
-            padding: 8px 12px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #45a049;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        table th, table td {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        table th {
-            background: #f0f0f0;
-        }
-
-        .logout {
-            float: right;
-            text-decoration: none;
-            color: red;
-        }
-    </style>
 </head>
 
 <body>
 
 <div class="container">
 
-    <h1>📊 Sistema Contable</h1>
-    <a href="/logout" class="logout">Cerrar sesión</a>
+<h1>📊 Sistema Contable</h1>
+<a href="/logout">Cerrar sesión</a>
 
-    <!-- RESUMEN -->
-    <div class="grid">
-        <div class="card">💰 Ingresos<br><b>{{ total_ingresos }}</b></div>
-        <div class="card">💸 Gastos<br><b>{{ total_gastos }}</b></div>
-        <div class="card">📈 Utilidad<br><b>{{ utilidad }}</b></div>
-    </div>
+<div class="grid">
+<div class="card">💰 {{ total_ingresos }}</div>
+<div class="card">💸 {{ total_gastos }}</div>
+<div class="card">📈 {{ utilidad }}</div>
+</div>
 
-    <!-- CLIENTES -->
-    <div class="card">
-        <h3>👥 Clientes</h3>
+<h3>Clientes</h3>
+<form method="POST" action="/cliente">
+<input name="nombre">
+<button>Guardar</button>
+</form>
 
-        <form method="POST" action="/cliente">
-            <input name="nombre" placeholder="Nombre cliente">
-            <button>Guardar</button>
-        </form>
+<ul>
+{% for c in clientes %}
+<li>{{c[1]}}</li>
+{% endfor %}
+</ul>
 
-        <ul>
-            {% for c in clientes %}
-            <li>{{ c[1] }}</li>
-            {% endfor %}
-        </ul>
-    </div>
+<h3>Proveedores</h3>
+<form method="POST" action="/proveedor">
+<input name="nombre">
+<button>Guardar</button>
+</form>
 
-    <!-- PROVEEDORES -->
-    <div class="card">
-        <h3>🏢 Proveedores</h3>
+<ul>
+{% for p in proveedores %}
+<li>{{p[1]}}</li>
+{% endfor %}
+</ul>
 
-        <form method="POST" action="/proveedor">
-            <input name="nombre" placeholder="Nombre proveedor">
-            <button>Guardar</button>
-        </form>
+<h3>Transacciones</h3>
 
-        <ul>
-            {% for p in proveedores %}
-            <li>{{ p[1] }}</li>
-            {% endfor %}
-        </ul>
-    </div>
+<form method="POST" action="/transaccion">
+<select name="tipo">
+<option value="ingreso">Ingreso</option>
+<option value="gasto">Gasto</option>
+</select>
 
-    <!-- TRANSACCIONES -->
-    <div class="card">
-        <h3>💳 Agregar Transacción</h3>
+<input name="descripcion">
+<input name="monto">
+<input type="date" name="fecha">
 
-        <form method="POST" action="/transaccion">
-            <select name="tipo">
-                <option value="ingreso">Ingreso</option>
-                <option value="gasto">Gasto</option>
-            </select>
+<button>Guardar</button>
+</form>
 
-            <input name="descripcion" placeholder="Descripción">
-            <input name="monto" placeholder="Monto">
-            <input name="fecha" type="date">
+<table>
+<tr>
+<th>Tipo</th>
+<th>Desc</th>
+<th>Monto</th>
+<th>Fecha</th>
+</tr>
 
-            <button>Guardar</button>
-        </form>
-    </div>
+{% for t in transacciones %}
+<tr>
+<td>{{t[1]}}</td>
+<td>{{t[2]}}</td>
+<td>{{t[3]}}</td>
+<td>{{t[4]}}</td>
+</tr>
+{% endfor %}
+</table>
 
-    <!-- TABLA -->
-    <div class="card">
-        <h3>📋 Transacciones</h3>
-
-        <table>
-            <tr>
-                <th>Tipo</th>
-                <th>Descripción</th>
-                <th>Monto</th>
-                <th>Fecha</th>
-            </tr>
-
-            {% for t in transacciones %}
-            <tr>
-                <td>{{ t[1] }}</td>
-                <td>{{ t[2] }}</td>
-                <td>{{ t[3] }}</td>
-                <td>{{ t[4] }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-
-        <br>
-        <a href="/exportar">📥 Exportar a Excel</a>
-    </div>
+<a href="/exportar">Exportar Excel</a>
 
 </div>
 
