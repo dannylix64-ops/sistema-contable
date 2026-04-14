@@ -2,6 +2,9 @@ from flask import Flask, render_template, request, redirect, session
 import sqlite3
 
 app = Flask(__name__)
+@app.route("/test")
+def test():
+    return "FUNCIONA"
 app.secret_key = "clave123"
 
 def get_db():
