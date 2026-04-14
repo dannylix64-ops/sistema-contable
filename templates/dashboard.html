@@ -1,66 +1,174 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Dashboard</title>
+    <title>Sistema Contable</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f5f7fb;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            margin: auto;
+        }
+
+        h1 {
+            margin-top: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .grid {
+            display: flex;
+            gap: 20px;
+        }
+
+        .grid .card {
+            flex: 1;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        input, select {
+            padding: 8px;
+            margin: 5px;
+        }
+
+        button {
+            padding: 8px 12px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th, table td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        table th {
+            background: #f0f0f0;
+        }
+
+        .logout {
+            float: right;
+            text-decoration: none;
+            color: red;
+        }
+    </style>
 </head>
-<body style="font-family: Arial; padding:20px;">
 
-<h1>📊 Sistema Contable</h1>
+<body>
 
-<h3>Resumen</h3>
-<div style="background:#f5f5f5; padding:10px; border-radius:10px;">
-    <p>💰 Ingresos: {{ total_ingresos }}</p>
-    <p>💸 Gastos: {{ total_gastos }}</p>
-    <p><strong>📊 Utilidad: {{ utilidad }}</strong></p>
+<div class="container">
+
+    <h1>📊 Sistema Contable</h1>
+    <a href="/logout" class="logout">Cerrar sesión</a>
+
+    <!-- RESUMEN -->
+    <div class="grid">
+        <div class="card">💰 Ingresos<br><b>{{ total_ingresos }}</b></div>
+        <div class="card">💸 Gastos<br><b>{{ total_gastos }}</b></div>
+        <div class="card">📈 Utilidad<br><b>{{ utilidad }}</b></div>
+    </div>
+
+    <!-- CLIENTES -->
+    <div class="card">
+        <h3>👥 Clientes</h3>
+
+        <form method="POST" action="/cliente">
+            <input name="nombre" placeholder="Nombre cliente">
+            <button>Guardar</button>
+        </form>
+
+        <ul>
+            {% for c in clientes %}
+            <li>{{ c[1] }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- PROVEEDORES -->
+    <div class="card">
+        <h3>🏢 Proveedores</h3>
+
+        <form method="POST" action="/proveedor">
+            <input name="nombre" placeholder="Nombre proveedor">
+            <button>Guardar</button>
+        </form>
+
+        <ul>
+            {% for p in proveedores %}
+            <li>{{ p[1] }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- TRANSACCIONES -->
+    <div class="card">
+        <h3>💳 Agregar Transacción</h3>
+
+        <form method="POST" action="/transaccion">
+            <select name="tipo">
+                <option value="ingreso">Ingreso</option>
+                <option value="gasto">Gasto</option>
+            </select>
+
+            <input name="descripcion" placeholder="Descripción">
+            <input name="monto" placeholder="Monto">
+            <input name="fecha" type="date">
+
+            <button>Guardar</button>
+        </form>
+    </div>
+
+    <!-- TABLA -->
+    <div class="card">
+        <h3>📋 Transacciones</h3>
+
+        <table>
+            <tr>
+                <th>Tipo</th>
+                <th>Descripción</th>
+                <th>Monto</th>
+                <th>Fecha</th>
+            </tr>
+
+            {% for t in transacciones %}
+            <tr>
+                <td>{{ t[1] }}</td>
+                <td>{{ t[2] }}</td>
+                <td>{{ t[3] }}</td>
+                <td>{{ t[4] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <br>
+        <a href="/exportar">📥 Exportar a Excel</a>
+    </div>
+
 </div>
-
-<h3>Agregar Cliente</h3>
-<form method="POST" action="/cliente">
-    <input name="nombre" placeholder="Cliente">
-    <button>Guardar</button>
-</form>
-
-<ul>
-{% for c in clientes %}
-<li>{{c[1]}}</li>
-{% endfor %}
-</ul>
-
-<h3>Agregar Transacción</h3>
-<form method="POST" action="/transaccion">
-    <select name="tipo">
-        <option value="ingreso">Ingreso</option>
-        <option value="gasto">Gasto</option>
-    </select>
-    <input name="descripcion" placeholder="Descripción">
-    <input name="monto" placeholder="Monto">
-    <input name="fecha" placeholder="Fecha">
-    <button>Guardar</button>
-</form>
-
-<h3>Transacciones</h3>
-<table border="1" cellpadding="5">
-<tr>
-    <th>Tipo</th>
-    <th>Descripción</th>
-    <th>Monto</th>
-    <th>Fecha</th>
-</tr>
-
-{% for t in transacciones %}
-<tr>
-    <td>{{ t[1] }}</td>
-    <td>{{ t[2] }}</td>
-    <td>{{ t[3] }}</td>
-    <td>{{ t[4] }}</td>
-</tr>
-{% endfor %}
-</table>
-
-<br><br>
-<a href="/exportar">📥 Exportar a Excel</a>
-<br><br>
-<a href="/logout">Cerrar sesión</a>
 
 </body>
 </html>
