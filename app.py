@@ -1,0 +1,48 @@
+from flask import Flask, render_template, request, redirect, session
+import sqlite3
+
+app = Flask(__name__)
+app.secret_key = "clave123"
+
+def get_db():
+    return sqlite3.connect("contabilidad.db")
+
+@app.route("/", methods=["GET","POST"])
+def login():
+    if request.method == "POST":
+        user = request.form["user"]
+        password = request.form["password"]
+
+        db = get_db()
+        u = db.execute("SELECT * FROM usuarios WHERE username=? AND password=?", (user,password)).fetchone()
+
+        if u:
+            session["user_id"] = u[0]
+            return redirect("/dashboard")
+        else:
+            return "Error login"
+
+    return render_template("login.html")
+
+@app.route("/dashboard")
+def dashboard():
+    db = get_db()
+
+    clientes = db.execute("SELECT * FROM clientes").fetchall()
+
+    return render_template("dashboard.html", clientes=clientes)
+
+@app.route("/cliente", methods=["POST"])
+def cliente():
+    db = get_db()
+    db.execute("INSERT INTO clientes (nombre) VALUES (?)", (request.form["nombre"],))
+    db.commit()
+    return redirect("/dashboard")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
+
+if __name__ == "__main__":
+    app.run()
