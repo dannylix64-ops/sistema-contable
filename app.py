@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, session
 import sqlite3
 
 app = Flask(__name__)
+print("VERSION NUEVA 123")
 @app.route("/test")
 def test():
     return "FUNCIONA"
