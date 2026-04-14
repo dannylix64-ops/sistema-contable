@@ -33,8 +33,9 @@ def dashboard():
     db = get_db()
 
     clientes = db.execute("SELECT * FROM clientes").fetchall()
+    transacciones = db.execute("SELECT * FROM transacciones").fetchall()
 
-    return render_template("dashboard.html", clientes=clientes)
+    return render_template("dashboard.html", clientes=clientes, transacciones=transacciones)
 
 @app.route("/cliente", methods=["POST"])
 def cliente():
