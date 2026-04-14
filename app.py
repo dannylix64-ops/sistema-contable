@@ -51,7 +51,7 @@ def logout():
 @app.route("/crear_admin")
 def crear_admin():
     db = get_db()
-    db.execute("INSERT INTO usuarios (username, password) VALUES ('admin','1234')")
+    db.execute("INSERT OR IGNORE INTO usuarios (id, username, password) VALUES (1, 'admin','1234')")
     db.commit()
     return "Usuario creado"
 @app.route("/init_db")
