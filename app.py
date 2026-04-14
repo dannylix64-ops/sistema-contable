@@ -1,16 +1,13 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, Response
 import sqlite3
 
 app = Flask(__name__)
-print("VERSION NUEVA 123")
-@app.route("/test")
-def test():
-    return "FUNCIONA"
 app.secret_key = "clave123"
 
 def get_db():
     return sqlite3.connect("contabilidad.db")
 
+# 🔹 LOGIN
 @app.route("/", methods=["GET","POST"])
 def login():
     if request.method == "POST":
@@ -18,7 +15,10 @@ def login():
         password = request.form["password"]
 
         db = get_db()
-        u = db.execute("SELECT * FROM usuarios WHERE username=? AND password=?", (user,password)).fetchone()
+        u = db.execute(
+            "SELECT * FROM usuarios WHERE username=? AND password=?",
+            (user, password)
+        ).fetchone()
 
         if u:
             session["user_id"] = u[0]
@@ -28,47 +28,140 @@ def login():
 
     return render_template("login.html")
 
+
+# 🔹 DASHBOARD
 @app.route("/dashboard")
 def dashboard():
     db = get_db()
 
     clientes = db.execute(
-    "SELECT * FROM clientes WHERE usuario_id=?",
-    (session["user_id"],)
-).fetchall()
+        "SELECT * FROM clientes WHERE usuario_id=?",
+        (session["user_id"],)
+    ).fetchall()
+
     transacciones = db.execute(
-    "SELECT * FROM transacciones WHERE usuario_id=?",
-    (session["user_id"],)
-).fetchall()
+        "SELECT * FROM transacciones WHERE usuario_id=?",
+        (session["user_id"],)
+    ).fetchall()
 
-    return render_template("dashboard.html", clientes=clientes, transacciones=transacciones)
+    total_ingresos = db.execute(
+        "SELECT COALESCE(SUM(monto),0) FROM transacciones WHERE tipo='ingreso' AND usuario_id=?",
+        (session["user_id"],)
+    ).fetchone()[0]
 
+    total_gastos = db.execute(
+        "SELECT COALESCE(SUM(monto),0) FROM transacciones WHERE tipo='gasto' AND usuario_id=?",
+        (session["user_id"],)
+    ).fetchone()[0]
+
+    utilidad = total_ingresos - total_gastos
+
+    return render_template(
+        "dashboard.html",
+        clientes=clientes,
+        transacciones=transacciones,
+        total_ingresos=total_ingresos,
+        total_gastos=total_gastos,
+        utilidad=utilidad
+    )
+
+
+# 🔹 AGREGAR CLIENTE
 @app.route("/cliente", methods=["POST"])
 def cliente():
     db = get_db()
+
     db.execute(
-    "INSERT INTO clientes (nombre, usuario_id) VALUES (?, ?)",
-    (request.form["nombre"], session["user_id"])
-)
+        "INSERT INTO clientes (nombre, usuario_id) VALUES (?, ?)",
+        (request.form["nombre"], session["user_id"])
+    )
+
     db.commit()
     return redirect("/dashboard")
 
+
+# 🔹 AGREGAR TRANSACCIÓN
+@app.route("/transaccion", methods=["POST"])
+def transaccion():
+    db = get_db()
+
+    db.execute("""
+        INSERT INTO transacciones (tipo, descripcion, monto, fecha, usuario_id)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        request.form["tipo"],
+        request.form["descripcion"],
+        request.form["monto"],
+        request.form["fecha"],
+        session["user_id"]
+    ))
+
+    db.commit()
+    return redirect("/dashboard")
+
+
+# 🔹 EXPORTAR A EXCEL
+@app.route("/exportar")
+def exportar():
+    db = get_db()
+    data = db.execute(
+        "SELECT tipo, descripcion, monto, fecha FROM transacciones WHERE usuario_id=?",
+        (session["user_id"],)
+    ).fetchall()
+
+    def generar():
+        yield "tipo,descripcion,monto,fecha\n"
+        for row in data:
+            yield f"{row[0]},{row[1]},{row[2]},{row[3]}\n"
+
+    return Response(
+        generar(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=transacciones.csv"}
+    )
+
+
+# 🔹 LOGOUT
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/")
+
+
+# 🔹 CREAR ADMIN
 @app.route("/crear_admin")
 def crear_admin():
     db = get_db()
-    db.execute("INSERT OR IGNORE INTO usuarios (id, username, password) VALUES (1, 'admin','1234')")
+
+    db.execute("""
+        INSERT OR IGNORE INTO usuarios (id, username, password)
+        VALUES (1, 'admin', '1234')
+    """)
+
     db.commit()
     return "Usuario creado"
+
+
+# 🔹 CREAR BASE DE DATOS
 @app.route("/init_db")
 def init_db():
     db = get_db()
 
-    db.execute("CREATE TABLE IF NOT EXISTS usuarios (id INTEGER PRIMARY KEY, username TEXT, password TEXT)")
-    db.execute("CREATE TABLE IF NOT EXISTS clientes (id INTEGER PRIMARY KEY, nombre TEXT)")
+    db.execute("""
+    CREATE TABLE IF NOT EXISTS usuarios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        password TEXT
+    )
+    """)
+
+    db.execute("""
+    CREATE TABLE IF NOT EXISTS clientes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT,
+        usuario_id INTEGER
+    )
+    """)
 
     db.execute("""
     CREATE TABLE IF NOT EXISTS transacciones (
@@ -76,11 +169,15 @@ def init_db():
         tipo TEXT,
         descripcion TEXT,
         monto REAL,
-        fecha TEXT
+        fecha TEXT,
+        usuario_id INTEGER
     )
     """)
 
     db.commit()
     return "Base de datos lista"
+
+
+# 🔹 MAIN
 if __name__ == "__main__":
     app.run()
