@@ -179,5 +179,42 @@ def init_db():
 
 
 # 🔹 MAIN
+@app.route("/reset_db")
+def reset_db():
+    db = get_db()
+
+    db.execute("DROP TABLE IF EXISTS usuarios")
+    db.execute("DROP TABLE IF EXISTS clientes")
+    db.execute("DROP TABLE IF EXISTS transacciones")
+
+    db.execute("""
+    CREATE TABLE usuarios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT,
+        password TEXT
+    )
+    """)
+
+    db.execute("""
+    CREATE TABLE clientes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT,
+        usuario_id INTEGER
+    )
+    """)
+
+    db.execute("""
+    CREATE TABLE transacciones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT,
+        descripcion TEXT,
+        monto REAL,
+        fecha TEXT,
+        usuario_id INTEGER
+    )
+    """)
+
+    db.commit()
+    return "Base reiniciada"
 if __name__ == "__main__":
     app.run()
