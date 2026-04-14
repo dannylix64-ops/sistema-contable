@@ -43,6 +43,11 @@ def cliente():
 def logout():
     session.clear()
     return redirect("/")
-
+@app.route("/crear_admin")
+def crear_admin():
+    db = get_db()
+    db.execute("INSERT INTO usuarios (username, password) VALUES ('admin','1234')")
+    db.commit()
+    return "Usuario creado"
 if __name__ == "__main__":
     app.run()
