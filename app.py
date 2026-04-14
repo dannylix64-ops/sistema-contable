@@ -7,6 +7,7 @@ app.secret_key = "clave123"
 def get_db():
     return sqlite3.connect("contabilidad.db")
 
+
 # 🔹 LOGIN
 @app.route("/", methods=["GET","POST"])
 def login():
@@ -39,6 +40,11 @@ def dashboard():
         (session["user_id"],)
     ).fetchall()
 
+    proveedores = db.execute(
+        "SELECT * FROM proveedores WHERE usuario_id=?",
+        (session["user_id"],)
+    ).fetchall()
+
     transacciones = db.execute(
         "SELECT * FROM transacciones WHERE usuario_id=?",
         (session["user_id"],)
@@ -59,6 +65,7 @@ def dashboard():
     return render_template(
         "dashboard.html",
         clientes=clientes,
+        proveedores=proveedores,
         transacciones=transacciones,
         total_ingresos=total_ingresos,
         total_gastos=total_gastos,
@@ -66,7 +73,7 @@ def dashboard():
     )
 
 
-# 🔹 AGREGAR CLIENTE
+# 🔹 CLIENTE
 @app.route("/cliente", methods=["POST"])
 def cliente():
     db = get_db()
@@ -80,7 +87,21 @@ def cliente():
     return redirect("/dashboard")
 
 
-# 🔹 AGREGAR TRANSACCIÓN
+# 🔹 PROVEEDOR
+@app.route("/proveedor", methods=["POST"])
+def proveedor():
+    db = get_db()
+
+    db.execute(
+        "INSERT INTO proveedores (nombre, usuario_id) VALUES (?, ?)",
+        (request.form["nombre"], session["user_id"])
+    )
+
+    db.commit()
+    return redirect("/dashboard")
+
+
+# 🔹 TRANSACCION
 @app.route("/transaccion", methods=["POST"])
 def transaccion():
     db = get_db()
@@ -100,10 +121,11 @@ def transaccion():
     return redirect("/dashboard")
 
 
-# 🔹 EXPORTAR A EXCEL
+# 🔹 EXPORTAR
 @app.route("/exportar")
 def exportar():
     db = get_db()
+
     data = db.execute(
         "SELECT tipo, descripcion, monto, fecha FROM transacciones WHERE usuario_id=?",
         (session["user_id"],)
@@ -142,49 +164,14 @@ def crear_admin():
     return "Usuario creado"
 
 
-# 🔹 CREAR BASE DE DATOS
-@app.route("/init_db")
-def init_db():
-    db = get_db()
-
-    db.execute("""
-    CREATE TABLE IF NOT EXISTS usuarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT
-    )
-    """)
-
-    db.execute("""
-    CREATE TABLE IF NOT EXISTS clientes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre TEXT,
-        usuario_id INTEGER
-    )
-    """)
-
-    db.execute("""
-    CREATE TABLE IF NOT EXISTS transacciones (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tipo TEXT,
-        descripcion TEXT,
-        monto REAL,
-        fecha TEXT,
-        usuario_id INTEGER
-    )
-    """)
-
-    db.commit()
-    return "Base de datos lista"
-
-
-# 🔹 MAIN
+# 🔹 RESET DB
 @app.route("/reset_db")
 def reset_db():
     db = get_db()
 
     db.execute("DROP TABLE IF EXISTS usuarios")
     db.execute("DROP TABLE IF EXISTS clientes")
+    db.execute("DROP TABLE IF EXISTS proveedores")
     db.execute("DROP TABLE IF EXISTS transacciones")
 
     db.execute("""
@@ -204,6 +191,14 @@ def reset_db():
     """)
 
     db.execute("""
+    CREATE TABLE proveedores (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT,
+        usuario_id INTEGER
+    )
+    """)
+
+    db.execute("""
     CREATE TABLE transacciones (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         tipo TEXT,
@@ -216,5 +211,8 @@ def reset_db():
 
     db.commit()
     return "Base reiniciada"
+
+
+# 🔹 MAIN
 if __name__ == "__main__":
     app.run()
