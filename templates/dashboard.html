@@ -12,3 +12,22 @@
 </ul>
 
 <a href="/logout">Salir</a>
+<h2>Transacciones</h2>
+
+<table border="1">
+    <tr>
+        <th>Tipo</th>
+        <th>Descripción</th>
+        <th>Monto</th>
+        <th>Fecha</th>
+    </tr>
+
+    {% for t in transacciones %}
+    <tr>
+        <td>{{ t[1] }}</td>
+        <td>{{ t[2] }}</td>
+        <td>{{ t[3] }}</td>
+        <td>{{ t[4] }}</td>
+    </tr>
+    {% endfor %}
+</table>
