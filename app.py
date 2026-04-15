@@ -4,7 +4,7 @@ import sqlite3
 app = Flask(__name__)
 app.secret_key = "clave123"
 
-print("VERSION NUEVA BALANCE")
+print("VERSION FINAL PRO")
 
 def get_db():
     return sqlite3.connect("contabilidad.db")
@@ -163,7 +163,7 @@ def exportar():
     return Response(generar(), mimetype="text/csv")
 
 
-# BALANCE
+# BALANCE PRO
 @app.route("/balance")
 def balance():
     if "user_id" not in session:
@@ -187,10 +187,12 @@ def balance():
     ).fetchone()[0]
 
     patrimonio = ingresos - gastos
+    pasivos = 0  # futuro módulo de deudas
 
     return render_template(
         "balance.html",
         activos=activos,
+        pasivos=pasivos,
         patrimonio=patrimonio
     )
 
@@ -217,6 +219,7 @@ def reset_db():
     db.execute("CREATE TABLE clientes (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, usuario_id INTEGER)")
     db.execute("CREATE TABLE proveedores (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, usuario_id INTEGER)")
     db.execute("CREATE TABLE bancos (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, saldo REAL, usuario_id INTEGER)")
+    
     db.execute("""
     CREATE TABLE transacciones (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
