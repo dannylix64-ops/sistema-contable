@@ -6,12 +6,18 @@
 <style>
 body {
     font-family: Arial;
-    background: #f5f7fb;
+    background: #f4f6f9;
 }
 
 .container {
     width: 90%;
     margin: auto;
+}
+
+h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .card {
@@ -23,26 +29,46 @@ body {
 
 .grid {
     display: flex;
-    gap: 20px;
+    gap: 15px;
 }
 
 .grid .card {
     flex: 1;
     text-align: center;
+    font-size: 18px;
+}
+
+input, select {
+    padding: 5px;
+    margin: 5px;
 }
 
 button {
     background: #4CAF50;
     color: white;
     border: none;
-    padding: 8px;
+    padding: 6px 10px;
     border-radius: 5px;
     cursor: pointer;
+}
+
+button:hover {
+    opacity: 0.9;
 }
 
 table {
     width: 100%;
     margin-top: 10px;
+    border-collapse: collapse;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+}
+
+th, td {
+    padding: 8px;
+    text-align: center;
 }
 </style>
 
@@ -55,20 +81,11 @@ table {
 <h1>📊 Sistema Contable</h1>
 <a href="/logout">Cerrar sesión</a>
 
-{% if plan == "free" %}
-<div style="background:orange; padding:10px; margin-top:10px;">
-⚠️ Plan GRATIS — Actualiza para desbloquear funciones
-<a href="/pagar">
-<button>Actualizar</button>
-</a>
-</div>
-{% endif %}
-
 <!-- RESUMEN -->
 <div class="grid">
-<div class="card">💰 Ingresos<br><b>{{ total_ingresos }}</b></div>
-<div class="card">💸 Gastos<br><b>{{ total_gastos }}</b></div>
-<div class="card">📈 Utilidad<br><b>{{ utilidad }}</b></div>
+    <div class="card">💰 Ingresos<br><b>{{ total_ingresos }}</b></div>
+    <div class="card">💸 Gastos<br><b>{{ total_gastos }}</b></div>
+    <div class="card">📈 Utilidad<br><b>{{ utilidad }}</b></div>
 </div>
 
 <!-- CLIENTES -->
@@ -108,7 +125,7 @@ table {
 <h3>🏦 Bancos</h3>
 
 <form method="POST" action="/banco">
-<input name="nombre" placeholder="Banco">
+<input name="nombre" placeholder="Nombre banco">
 <input name="saldo" placeholder="Saldo inicial">
 <button>Guardar</button>
 </form>
@@ -131,6 +148,7 @@ table {
 <option value="gasto">Gasto</option>
 </select>
 
+<!-- 🔥 SELECTOR BANCO -->
 <select name="banco">
 {% for b in bancos %}
 <option value="{{b[0]}}">{{b[1]}}</option>
@@ -142,6 +160,7 @@ table {
 <input type="date" name="fecha">
 
 <button>Guardar</button>
+
 </form>
 </div>
 
@@ -149,7 +168,7 @@ table {
 <div class="card">
 <h3>📋 Transacciones</h3>
 
-<table border="1">
+<table>
 <tr>
 <th>Tipo</th>
 <th>Descripción</th>
@@ -172,11 +191,17 @@ table {
 <a href="/exportar">📥 Exportar a Excel</a>
 </div>
 
-<!-- BOTÓN PAGO -->
+<!-- BOTONES -->
 <div class="card">
+
+<a href="/balance">
+<button>📊 Ver Balance</button>
+</a>
+
 <a href="/pagar">
 <button style="background:purple;">💳 Comprar versión PRO</button>
 </a>
+
 </div>
 
 </div>
