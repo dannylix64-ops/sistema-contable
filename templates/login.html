@@ -1,6 +1,73 @@
-<h2>Login</h2>
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login - Sistema Contable</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #f4f6f9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.card {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    width: 300px;
+    text-align: center;
+}
+
+input {
+    width: 90%;
+    padding: 8px;
+    margin: 8px 0;
+}
+
+button {
+    width: 100%;
+    padding: 8px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+a {
+    display: block;
+    margin-top: 10px;
+    color: #007BFF;
+    text-decoration: none;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>📊 Sistema Contable</h2>
+
 <form method="POST">
 <input name="user" placeholder="Usuario">
-<input name="password" type="password" placeholder="Clave">
+<input name="password" placeholder="Clave" type="password">
 <button>Ingresar</button>
 </form>
+
+<br>
+
+<p>¿No tienes cuenta?</p>
+<a href="/registro">Crear cuenta</a>
+
+</div>
+
+</body>
+</html>
