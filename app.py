@@ -1,10 +1,11 @@
 from flask import Flask, render_template, request, redirect, session, Response
 import sqlite3
+import os
 
 app = Flask(__name__)
 app.secret_key = "clave123"
 
-print("VERSION FINAL PRO")
+print("VERSION PRO FINAL")
 
 def get_db():
     return sqlite3.connect("contabilidad.db")
@@ -30,6 +31,25 @@ def login():
             return "Error login"
 
     return render_template("login.html")
+
+
+# REGISTRO (MULTIUSUARIO)
+@app.route("/registro", methods=["GET","POST"])
+def registro():
+    if request.method == "POST":
+        user = request.form["user"]
+        password = request.form["password"]
+
+        db = get_db()
+        db.execute(
+            "INSERT INTO usuarios (username, password) VALUES (?, ?)",
+            (user, password)
+        )
+        db.commit()
+
+        return redirect("/")
+
+    return render_template("registro.html")
 
 
 # DASHBOARD
@@ -136,7 +156,6 @@ def transaccion():
         VALUES (?, ?, ?, ?, ?)
     """, (tipo, descripcion, monto, fecha, session["user_id"]))
 
-    # saldo automático
     if tipo == "ingreso":
         db.execute("UPDATE bancos SET saldo = saldo + ? WHERE id=?", (monto, banco_id))
     else:
@@ -187,13 +206,49 @@ def balance():
     ).fetchone()[0]
 
     patrimonio = ingresos - gastos
-    pasivos = 0  # futuro módulo de deudas
+    pasivos = 0
 
     return render_template(
         "balance.html",
         activos=activos,
         pasivos=pasivos,
         patrimonio=patrimonio
+    )
+
+
+# REPORTES (ESTADO RESULTADOS)
+@app.route("/reportes")
+def reportes():
+    if "user_id" not in session:
+        return redirect("/")
+
+    db = get_db()
+
+    ingresos = db.execute("""
+        SELECT descripcion, SUM(monto)
+        FROM transacciones
+        WHERE tipo='ingreso' AND usuario_id=?
+        GROUP BY descripcion
+    """, (session["user_id"],)).fetchall()
+
+    gastos = db.execute("""
+        SELECT descripcion, SUM(monto)
+        FROM transacciones
+        WHERE tipo='gasto' AND usuario_id=?
+        GROUP BY descripcion
+    """, (session["user_id"],)).fetchall()
+
+    total_ingresos = sum([i[1] for i in ingresos])
+    total_gastos = sum([g[1] for g in gastos])
+    utilidad = total_ingresos - total_gastos
+
+    return render_template(
+        "reportes.html",
+        ingresos=ingresos,
+        gastos=gastos,
+        total_ingresos=total_ingresos,
+        total_gastos=total_gastos,
+        utilidad=utilidad
     )
 
 
@@ -204,11 +259,9 @@ def logout():
     return redirect("/")
 
 
-# RESET DB
+# RESET DB (CORREGIDO)
 @app.route("/reset_db")
 def reset_db():
-    import os
-
     if os.path.exists("contabilidad.db"):
         os.remove("contabilidad.db")
 
@@ -232,6 +285,7 @@ def reset_db():
 
     db.commit()
     return "Base reiniciada OK"
+
 
 # CREAR ADMIN
 @app.route("/crear_admin")
