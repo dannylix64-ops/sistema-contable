@@ -242,6 +242,36 @@ def crear_admin():
     db.commit()
     return "admin creado"
 
+@app.route("/balance")
+def balance():
+    if "user_id" not in session:
+        return redirect("/")
+
+    db = get_db()
+
+    activos = db.execute(
+        "SELECT COALESCE(SUM(saldo),0) FROM bancos WHERE usuario_id=?",
+        (session["user_id"],)
+    ).fetchone()[0]
+
+    ingresos = db.execute(
+        "SELECT COALESCE(SUM(monto),0) FROM transacciones WHERE tipo='ingreso' AND usuario_id=?",
+        (session["user_id"],)
+    ).fetchone()[0]
+
+    gastos = db.execute(
+        "SELECT COALESCE(SUM(monto),0) FROM transacciones WHERE tipo='gasto' AND usuario_id=?",
+        (session["user_id"],)
+    ).fetchone()[0]
+
+    patrimonio = ingresos - gastos
+
+    return render_template(
+        "balance.html",
+        activos=activos,
+        patrimonio=patrimonio
+    )
+
 
 if __name__ == "__main__":
     app.run()
