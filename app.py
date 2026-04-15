@@ -5,6 +5,11 @@ import stripe
 app = Flask(__name__)
 app.secret_key = "clave123"
 
+app = Flask(__name__)
+app.secret_key = "clave123"
+
+print("VERSION NUEVA BALANCE")
+
 stripe.api_key = "TU_CLAVE_SECRETA"
 
 
