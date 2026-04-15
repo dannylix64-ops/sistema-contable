@@ -4,13 +4,46 @@
 <title>Sistema Contable</title>
 
 <style>
-body {font-family: Arial; background:#f5f7fb;}
-.container {width:90%; margin:auto;}
-.card {background:white; padding:15px; margin:10px 0; border-radius:10px;}
-.grid {display:flex; gap:20px;}
-.grid .card {flex:1; text-align:center;}
-button {background:#4CAF50; color:white; border:none; padding:8px;}
-table {width:100%;}
+body {
+    font-family: Arial;
+    background: #f5f7fb;
+}
+
+.container {
+    width: 90%;
+    margin: auto;
+}
+
+.card {
+    background: white;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 10px;
+}
+
+.grid {
+    display: flex;
+    gap: 20px;
+}
+
+.grid .card {
+    flex: 1;
+    text-align: center;
+}
+
+button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+table {
+    width: 100%;
+    margin-top: 10px;
+}
 </style>
 
 </head>
@@ -22,70 +55,129 @@ table {width:100%;}
 <h1>📊 Sistema Contable</h1>
 <a href="/logout">Cerrar sesión</a>
 
+{% if plan == "free" %}
+<div style="background:orange; padding:10px; margin-top:10px;">
+⚠️ Plan GRATIS — Actualiza para desbloquear funciones
+<a href="/pagar">
+<button>Actualizar</button>
+</a>
+</div>
+{% endif %}
+
+<!-- RESUMEN -->
 <div class="grid">
-<div class="card">💰 {{ total_ingresos }}</div>
-<div class="card">💸 {{ total_gastos }}</div>
-<div class="card">📈 {{ utilidad }}</div>
+<div class="card">💰 Ingresos<br><b>{{ total_ingresos }}</b></div>
+<div class="card">💸 Gastos<br><b>{{ total_gastos }}</b></div>
+<div class="card">📈 Utilidad<br><b>{{ utilidad }}</b></div>
 </div>
 
-<h3>Clientes</h3>
+<!-- CLIENTES -->
+<div class="card">
+<h3>👥 Clientes</h3>
+
 <form method="POST" action="/cliente">
-<input name="nombre">
+<input name="nombre" placeholder="Nombre cliente">
 <button>Guardar</button>
 </form>
 
 <ul>
 {% for c in clientes %}
-<li>{{c[1]}}</li>
+<li>{{ c[1] }}</li>
 {% endfor %}
 </ul>
+</div>
 
-<h3>Proveedores</h3>
+<!-- PROVEEDORES -->
+<div class="card">
+<h3>🏢 Proveedores</h3>
+
 <form method="POST" action="/proveedor">
-<input name="nombre">
+<input name="nombre" placeholder="Nombre proveedor">
 <button>Guardar</button>
 </form>
 
 <ul>
 {% for p in proveedores %}
-<li>{{p[1]}}</li>
+<li>{{ p[1] }}</li>
 {% endfor %}
 </ul>
+</div>
 
-<h3>Transacciones</h3>
+<!-- BANCOS -->
+<div class="card">
+<h3>🏦 Bancos</h3>
+
+<form method="POST" action="/banco">
+<input name="nombre" placeholder="Banco">
+<input name="saldo" placeholder="Saldo inicial">
+<button>Guardar</button>
+</form>
+
+<ul>
+{% for b in bancos %}
+<li>{{ b[1] }} — ${{ b[2] }}</li>
+{% endfor %}
+</ul>
+</div>
+
+<!-- TRANSACCIONES -->
+<div class="card">
+<h3>💳 Agregar Transacción</h3>
 
 <form method="POST" action="/transaccion">
+
 <select name="tipo">
 <option value="ingreso">Ingreso</option>
 <option value="gasto">Gasto</option>
 </select>
 
-<input name="descripcion">
-<input name="monto">
+<select name="banco">
+{% for b in bancos %}
+<option value="{{b[0]}}">{{b[1]}}</option>
+{% endfor %}
+</select>
+
+<input name="descripcion" placeholder="Descripción">
+<input name="monto" placeholder="Monto">
 <input type="date" name="fecha">
 
 <button>Guardar</button>
 </form>
+</div>
 
-<table>
+<!-- TABLA -->
+<div class="card">
+<h3>📋 Transacciones</h3>
+
+<table border="1">
 <tr>
 <th>Tipo</th>
-<th>Desc</th>
+<th>Descripción</th>
 <th>Monto</th>
 <th>Fecha</th>
 </tr>
 
 {% for t in transacciones %}
 <tr>
-<td>{{t[1]}}</td>
-<td>{{t[2]}}</td>
-<td>{{t[3]}}</td>
-<td>{{t[4]}}</td>
+<td>{{ t[1] }}</td>
+<td>{{ t[2] }}</td>
+<td>{{ t[3] }}</td>
+<td>{{ t[4] }}</td>
 </tr>
 {% endfor %}
 </table>
 
-<a href="/exportar">Exportar Excel</a>
+<br>
+
+<a href="/exportar">📥 Exportar a Excel</a>
+</div>
+
+<!-- BOTÓN PAGO -->
+<div class="card">
+<a href="/pagar">
+<button style="background:purple;">💳 Comprar versión PRO</button>
+</a>
+</div>
 
 </div>
 
