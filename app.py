@@ -207,19 +207,18 @@ def logout():
 # RESET DB
 @app.route("/reset_db")
 def reset_db():
-    db = get_db()
+    import os
 
-    db.execute("DROP TABLE IF EXISTS usuarios")
-    db.execute("DROP TABLE IF EXISTS clientes")
-    db.execute("DROP TABLE IF EXISTS proveedores")
-    db.execute("DROP TABLE IF EXISTS bancos")
-    db.execute("DROP TABLE IF EXISTS transacciones")
+    if os.path.exists("contabilidad.db"):
+        os.remove("contabilidad.db")
+
+    db = get_db()
 
     db.execute("CREATE TABLE usuarios (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, password TEXT)")
     db.execute("CREATE TABLE clientes (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, usuario_id INTEGER)")
     db.execute("CREATE TABLE proveedores (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, usuario_id INTEGER)")
     db.execute("CREATE TABLE bancos (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, saldo REAL, usuario_id INTEGER)")
-    
+
     db.execute("""
     CREATE TABLE transacciones (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -232,8 +231,7 @@ def reset_db():
     """)
 
     db.commit()
-    return "Base reiniciada"
-
+    return "Base reiniciada OK"
 
 # CREAR ADMIN
 @app.route("/crear_admin")
