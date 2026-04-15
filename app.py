@@ -1,15 +1,20 @@
 from flask import Flask, render_template, request, redirect, session, Response
 import sqlite3
+import stripe
 
 app = Flask(__name__)
 app.secret_key = "clave123"
+
+# 🔑 STRIPE (REEMPLAZA CON TU CLAVE REAL)
+stripe.api_key = "TU_CLAVE_SECRETA"
+
 
 def get_db():
     return sqlite3.connect("contabilidad.db")
 
 
 # 🔹 LOGIN
-@app.route("/", methods=["GET","POST"])
+@app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         user = request.form["user"]
@@ -125,21 +130,27 @@ def banco():
     return redirect("/dashboard")
 
 
-# 🔹 TRANSACCION
+# 🔹 TRANSACCION (CON SALDO AUTOMÁTICO)
 @app.route("/transaccion", methods=["POST"])
 def transaccion():
     db = get_db()
 
+    tipo = request.form["tipo"]
+    descripcion = request.form["descripcion"]
+    monto = float(request.form["monto"])
+    fecha = request.form["fecha"]
+    banco_id = request.form["banco"]
+
     db.execute("""
         INSERT INTO transacciones (tipo, descripcion, monto, fecha, usuario_id)
         VALUES (?, ?, ?, ?, ?)
-    """, (
-        request.form["tipo"],
-        request.form["descripcion"],
-        request.form["monto"],
-        request.form["fecha"],
-        session["user_id"]
-    ))
+    """, (tipo, descripcion, monto, fecha, session["user_id"]))
+
+    # 💰 ACTUALIZAR SALDO AUTOMÁTICO
+    if tipo == "ingreso":
+        db.execute("UPDATE bancos SET saldo = saldo + ? WHERE id=?", (monto, banco_id))
+    else:
+        db.execute("UPDATE bancos SET saldo = saldo - ? WHERE id=?", (monto, banco_id))
 
     db.commit()
     return redirect("/dashboard")
@@ -167,6 +178,35 @@ def exportar():
     )
 
 
+# 🔹 PAGO STRIPE
+@app.route("/pagar")
+def pagar():
+    session_stripe = stripe.checkout.Session.create(
+        payment_method_types=['card'],
+        line_items=[{
+            'price_data': {
+                'currency': 'usd',
+                'product_data': {
+                    'name': 'Sistema Contable Pro',
+                },
+                'unit_amount': 1000,  # $10
+            },
+            'quantity': 1,
+        }],
+        mode='payment',
+        success_url='https://sistema-contable-eigb.onrender.com/dashboard',
+        cancel_url='https://sistema-contable-eigb.onrender.com/',
+    )
+
+    return redirect(session_stripe.url)
+
+
+# 🔹 LANDING
+@app.route("/landing")
+def landing():
+    return render_template("landing.html")
+
+
 # 🔹 LOGOUT
 @app.route("/logout")
 def logout():
@@ -188,7 +228,7 @@ def crear_admin():
     return redirect("/")
 
 
-# 🔹 RESET DB (CON BANCOS)
+# 🔹 RESET DB
 @app.route("/reset_db")
 def reset_db():
     db = get_db()
