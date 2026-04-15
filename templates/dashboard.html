@@ -7,6 +7,13 @@
 body {
     font-family: Arial;
     background: #f4f6f9;
+    margin: 0;
+}
+
+.header {
+    background: #2c3e50;
+    color: white;
+    padding: 15px;
 }
 
 .container {
@@ -14,28 +21,25 @@ body {
     margin: auto;
 }
 
-h1 {
+.grid {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    gap: 15px;
+    margin-top: 15px;
 }
 
 .card {
     background: white;
     padding: 15px;
-    margin: 10px 0;
     border-radius: 10px;
-}
-
-.grid {
-    display: flex;
-    gap: 15px;
-}
-
-.grid .card {
     flex: 1;
     text-align: center;
-    font-size: 18px;
+}
+
+.section {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 15px;
 }
 
 input, select {
@@ -44,7 +48,7 @@ input, select {
 }
 
 button {
-    background: #4CAF50;
+    background: #27ae60;
     color: white;
     border: none;
     padding: 6px 10px;
@@ -70,16 +74,22 @@ th, td {
     padding: 8px;
     text-align: center;
 }
+
+.actions {
+    margin-top: 15px;
+}
 </style>
 
 </head>
 
 <body>
 
-<div class="container">
+<div class="header">
+<h2>📊 Sistema Contable</h2>
+<a href="/logout" style="color:white;">Cerrar sesión</a>
+</div>
 
-<h1>📊 Sistema Contable</h1>
-<a href="/logout">Cerrar sesión</a>
+<div class="container">
 
 <!-- RESUMEN -->
 <div class="grid">
@@ -89,11 +99,10 @@ th, td {
 </div>
 
 <!-- CLIENTES -->
-<div class="card">
+<div class="section">
 <h3>👥 Clientes</h3>
-
 <form method="POST" action="/cliente">
-<input name="nombre" placeholder="Nombre cliente">
+<input name="nombre" placeholder="Nuevo cliente">
 <button>Guardar</button>
 </form>
 
@@ -105,11 +114,10 @@ th, td {
 </div>
 
 <!-- PROVEEDORES -->
-<div class="card">
+<div class="section">
 <h3>🏢 Proveedores</h3>
-
 <form method="POST" action="/proveedor">
-<input name="nombre" placeholder="Nombre proveedor">
+<input name="nombre" placeholder="Nuevo proveedor">
 <button>Guardar</button>
 </form>
 
@@ -121,12 +129,11 @@ th, td {
 </div>
 
 <!-- BANCOS -->
-<div class="card">
+<div class="section">
 <h3>🏦 Bancos</h3>
-
 <form method="POST" action="/banco">
-<input name="nombre" placeholder="Nombre banco">
-<input name="saldo" placeholder="Saldo inicial">
+<input name="nombre" placeholder="Banco">
+<input name="saldo" placeholder="Saldo">
 <button>Guardar</button>
 </form>
 
@@ -138,17 +145,15 @@ th, td {
 </div>
 
 <!-- TRANSACCIONES -->
-<div class="card">
-<h3>💳 Agregar Transacción</h3>
+<div class="section">
+<h3>💳 Transacciones</h3>
 
 <form method="POST" action="/transaccion">
-
 <select name="tipo">
 <option value="ingreso">Ingreso</option>
 <option value="gasto">Gasto</option>
 </select>
 
-<!-- SELECTOR BANCO -->
 <select name="banco">
 {% for b in bancos %}
 <option value="{{b[0]}}">{{b[1]}}</option>
@@ -160,13 +165,7 @@ th, td {
 <input type="date" name="fecha">
 
 <button>Guardar</button>
-
 </form>
-</div>
-
-<!-- TABLA -->
-<div class="card">
-<h3>📋 Transacciones</h3>
 
 <table>
 <tr>
@@ -188,18 +187,18 @@ th, td {
 
 <br>
 
-<a href="/exportar">📥 Exportar a Excel</a>
+<a href="/exportar">📥 Exportar Excel</a>
 </div>
 
-<!-- BOTONES -->
-<div class="card">
+<!-- ACCIONES -->
+<div class="section actions">
 
 <a href="/balance">
-<button>📊 Ver Balance</button>
+<button>📊 Balance</button>
 </a>
 
-<a href="/pagar">
-<button style="background:purple;">💳 Comprar versión PRO</button>
+<a href="/reportes">
+<button>📑 Reportes</button>
 </a>
 
 </div>
