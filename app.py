@@ -45,6 +45,11 @@ def dashboard():
         (session["user_id"],)
     ).fetchall()
 
+    bancos = db.execute(
+        "SELECT * FROM bancos WHERE usuario_id=?",
+        (session["user_id"],)
+    ).fetchall()
+
     transacciones = db.execute(
         "SELECT * FROM transacciones WHERE usuario_id=?",
         (session["user_id"],)
@@ -66,6 +71,7 @@ def dashboard():
         "dashboard.html",
         clientes=clientes,
         proveedores=proveedores,
+        bancos=bancos,
         transacciones=transacciones,
         total_ingresos=total_ingresos,
         total_gastos=total_gastos,
@@ -101,6 +107,24 @@ def proveedor():
     return redirect("/dashboard")
 
 
+# 🔹 BANCO
+@app.route("/banco", methods=["POST"])
+def banco():
+    db = get_db()
+
+    db.execute(
+        "INSERT INTO bancos (nombre, saldo, usuario_id) VALUES (?, ?, ?)",
+        (
+            request.form["nombre"],
+            request.form["saldo"],
+            session["user_id"]
+        )
+    )
+
+    db.commit()
+    return redirect("/dashboard")
+
+
 # 🔹 TRANSACCION
 @app.route("/transaccion", methods=["POST"])
 def transaccion():
@@ -121,7 +145,7 @@ def transaccion():
     return redirect("/dashboard")
 
 
-# 🔹 EXPORTAR
+# 🔹 EXPORTAR CSV
 @app.route("/exportar")
 def exportar():
     db = get_db()
@@ -161,10 +185,10 @@ def crear_admin():
     """)
 
     db.commit()
-    return "Usuario creado"
+    return redirect("/")
 
 
-# 🔹 RESET DB
+# 🔹 RESET DB (CON BANCOS)
 @app.route("/reset_db")
 def reset_db():
     db = get_db()
@@ -172,6 +196,7 @@ def reset_db():
     db.execute("DROP TABLE IF EXISTS usuarios")
     db.execute("DROP TABLE IF EXISTS clientes")
     db.execute("DROP TABLE IF EXISTS proveedores")
+    db.execute("DROP TABLE IF EXISTS bancos")
     db.execute("DROP TABLE IF EXISTS transacciones")
 
     db.execute("""
@@ -199,6 +224,15 @@ def reset_db():
     """)
 
     db.execute("""
+    CREATE TABLE bancos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT,
+        saldo REAL,
+        usuario_id INTEGER
+    )
+    """)
+
+    db.execute("""
     CREATE TABLE transacciones (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         tipo TEXT,
@@ -210,7 +244,7 @@ def reset_db():
     """)
 
     db.commit()
-    return "Base reiniciada"
+    return redirect("/")
 
 
 # 🔹 MAIN
