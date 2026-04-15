@@ -1,14 +1,10 @@
 from flask import Flask, render_template, request, redirect, session, Response
 import sqlite3
-import stripe
 
 app = Flask(__name__)
 app.secret_key = "clave123"
 
 print("VERSION NUEVA BALANCE")
-
-stripe.api_key = "TU_CLAVE_SECRETA"
-
 
 def get_db():
     return sqlite3.connect("contabilidad.db")
