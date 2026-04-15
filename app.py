@@ -5,7 +5,7 @@ import stripe
 app = Flask(__name__)
 app.secret_key = "clave123"
 
-# 🔑 STRIPE (REEMPLAZA CON TU CLAVE REAL)
+# 🔑 STRIPE (luego reemplazas tu clave)
 stripe.api_key = "TU_CLAVE_SECRETA"
 
 
@@ -40,6 +40,10 @@ def login():
 def dashboard():
     db = get_db()
 
+    # 🔐 evitar error si no hay sesión
+    if "user_id" not in session:
+        return redirect("/")
+
     clientes = db.execute(
         "SELECT * FROM clientes WHERE usuario_id=?",
         (session["user_id"],)
@@ -72,6 +76,13 @@ def dashboard():
 
     utilidad = total_ingresos - total_gastos
 
+    usuario = db.execute(
+        "SELECT plan FROM usuarios WHERE id=?",
+        (session["user_id"],)
+    ).fetchone()
+
+    plan = usuario[0] if usuario else "free"
+
     return render_template(
         "dashboard.html",
         clientes=clientes,
@@ -80,7 +91,8 @@ def dashboard():
         transacciones=transacciones,
         total_ingresos=total_ingresos,
         total_gastos=total_gastos,
-        utilidad=utilidad
+        utilidad=utilidad,
+        plan=plan
     )
 
 
@@ -130,7 +142,7 @@ def banco():
     return redirect("/dashboard")
 
 
-# 🔹 TRANSACCION (CON SALDO AUTOMÁTICO)
+# 🔹 TRANSACCION
 @app.route("/transaccion", methods=["POST"])
 def transaccion():
     db = get_db()
@@ -146,7 +158,7 @@ def transaccion():
         VALUES (?, ?, ?, ?, ?)
     """, (tipo, descripcion, monto, fecha, session["user_id"]))
 
-    # 💰 ACTUALIZAR SALDO AUTOMÁTICO
+    # 💰 saldo automático
     if tipo == "ingreso":
         db.execute("UPDATE bancos SET saldo = saldo + ? WHERE id=?", (monto, banco_id))
     else:
@@ -156,7 +168,7 @@ def transaccion():
     return redirect("/dashboard")
 
 
-# 🔹 EXPORTAR CSV
+# 🔹 EXPORTAR
 @app.route("/exportar")
 def exportar():
     db = get_db()
@@ -178,7 +190,7 @@ def exportar():
     )
 
 
-# 🔹 PAGO STRIPE
+# 🔹 STRIPE PAGO
 @app.route("/pagar")
 def pagar():
     session_stripe = stripe.checkout.Session.create(
@@ -199,7 +211,7 @@ def pagar():
     return redirect(session_stripe.url)
 
 
-# 🔹 ACTIVAR PLAN PRO
+# 🔹 ACTIVAR PRO
 @app.route("/success")
 def success():
     db = get_db()
@@ -213,13 +225,7 @@ def success():
     return redirect("/dashboard")
 
 
-# 🔹 LANDING
-@app.route("/landing")
-def landing():
-    return render_template("landing.html")
-
-
-# 🔹 BALANCE GENERAL
+# 🔹 BALANCE
 @app.route("/balance")
 def balance():
     db = get_db()
@@ -239,9 +245,7 @@ def balance():
         (session["user_id"],)
     ).fetchone()[0]
 
-    utilidad = ingresos - gastos
-
-    patrimonio = utilidad
+    patrimonio = ingresos - gastos
 
     return render_template(
         "balance.html",
@@ -257,18 +261,20 @@ def logout():
     return redirect("/")
 
 
-# 🔹 CREAR ADMIN
+# 🔹 CREAR ADMIN (FIX DEFINITIVO)
 @app.route("/crear_admin")
 def crear_admin():
     db = get_db()
 
+    db.execute("DELETE FROM usuarios")
+
     db.execute("""
-        INSERT OR IGNORE INTO usuarios (id, username, password, plan)
-        VALUES (1, 'admin', '1234', 'pro')
+        INSERT INTO usuarios (username, password, plan)
+        VALUES ('admin', '1234', 'pro')
     """)
 
     db.commit()
-    return redirect("/")
+    return "admin creado"
 
 
 # 🔹 RESET DB
