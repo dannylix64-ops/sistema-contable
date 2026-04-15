@@ -186,25 +186,68 @@ def pagar():
         line_items=[{
             'price_data': {
                 'currency': 'usd',
-                'product_data': {
-                    'name': 'Sistema Contable Pro',
-                },
-                'unit_amount': 1000,  # $10
+                'product_data': {'name': 'Sistema Contable Pro'},
+                'unit_amount': 1000,
             },
             'quantity': 1,
         }],
         mode='payment',
-        success_url='https://sistema-contable-eigb.onrender.com/dashboard',
+        success_url='https://sistema-contable-eigb.onrender.com/success',
         cancel_url='https://sistema-contable-eigb.onrender.com/',
     )
 
     return redirect(session_stripe.url)
 
 
+# 🔹 ACTIVAR PLAN PRO
+@app.route("/success")
+def success():
+    db = get_db()
+
+    db.execute(
+        "UPDATE usuarios SET plan='pro' WHERE id=?",
+        (session["user_id"],)
+    )
+
+    db.commit()
+    return redirect("/dashboard")
+
+
 # 🔹 LANDING
 @app.route("/landing")
 def landing():
     return render_template("landing.html")
+
+
+# 🔹 BALANCE GENERAL
+@app.route("/balance")
+def balance():
+    db = get_db()
+
+    activos = db.execute(
+        "SELECT COALESCE(SUM(saldo),0) FROM bancos WHERE usuario_id=?",
+        (session["user_id"],)
+    ).fetchone()[0]
+
+    ingresos = db.execute(
+        "SELECT COALESCE(SUM(monto),0) FROM transacciones WHERE tipo='ingreso' AND usuario_id=?",
+        (session["user_id"],)
+    ).fetchone()[0]
+
+    gastos = db.execute(
+        "SELECT COALESCE(SUM(monto),0) FROM transacciones WHERE tipo='gasto' AND usuario_id=?",
+        (session["user_id"],)
+    ).fetchone()[0]
+
+    utilidad = ingresos - gastos
+
+    patrimonio = utilidad
+
+    return render_template(
+        "balance.html",
+        activos=activos,
+        patrimonio=patrimonio
+    )
 
 
 # 🔹 LOGOUT
@@ -220,8 +263,8 @@ def crear_admin():
     db = get_db()
 
     db.execute("""
-        INSERT OR IGNORE INTO usuarios (id, username, password)
-        VALUES (1, 'admin', '1234')
+        INSERT OR IGNORE INTO usuarios (id, username, password, plan)
+        VALUES (1, 'admin', '1234', 'pro')
     """)
 
     db.commit()
@@ -243,7 +286,8 @@ def reset_db():
     CREATE TABLE usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT,
-        password TEXT
+        password TEXT,
+        plan TEXT DEFAULT 'free'
     )
     """)
 
