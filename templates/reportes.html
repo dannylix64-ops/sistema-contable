@@ -1,0 +1,28 @@
+<h1>📊 Estado de Resultados</h1>
+
+<h3>Ingresos</h3>
+<table border="1">
+<tr><th>Concepto</th><th>Valor</th></tr>
+{% for i in ingresos %}
+<tr>
+<td>{{ i[0] }}</td>
+<td>{{ i[1] }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<h3>Gastos</h3>
+<table border="1">
+<tr><th>Concepto</th><th>Valor</th></tr>
+{% for g in gastos %}
+<tr>
+<td>{{ g[0] }}</td>
+<td>{{ g[1] }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<h2>Utilidad: {{ utilidad }}</h2>
+
+<br>
+<a href="/dashboard">Volver</a>
