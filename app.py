@@ -5,13 +5,13 @@ import pandas as pd
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-# 🔌 CONEXIÓN
+# 🔌 CONEXIÓN BD
 def get_db():
     conn = sqlite3.connect("contabilidad.db")
     conn.row_factory = sqlite3.Row
     return conn
 
-# 🧱 CREAR BD AUTOMÁTICA (CLAVE PARA RENDER)
+# 🧱 CREAR BD AUTOMÁTICA (IMPORTANTE PARA RENDER)
 def init_db():
     conn = sqlite3.connect("contabilidad.db")
     cursor = conn.cursor()
@@ -84,18 +84,10 @@ def init_db():
     conn.commit()
     conn.close()
 
-# 🔐 LOGIN
-@app.route("/", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        session["user"] = request.form["usuario"]
-        return redirect("/dashboard")
-    return render_template("login.html")
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/")
+# 🚀 INICIO DIRECTO (ELIMINA ERROR BAD REQUEST)
+@app.route("/")
+def inicio():
+    return redirect("/dashboard")
 
 # 📊 DASHBOARD
 @app.route("/dashboard")
@@ -157,7 +149,7 @@ def banco():
     conn.commit()
     return redirect("/dashboard")
 
-# 💳 TRANSACCIONES + CONTABILIDAD AUTOMÁTICA
+# 💳 TRANSACCIONES + DIARIO AUTOMÁTICO
 @app.route("/transaccion", methods=["POST"])
 def transaccion():
     conn = get_db()
@@ -279,7 +271,7 @@ def resultados():
         utilidad=utilidad
     )
 
-# 📥 EXPORTAR
+# 📥 EXPORTAR EXCEL
 @app.route("/exportar")
 def exportar():
     conn = get_db()
