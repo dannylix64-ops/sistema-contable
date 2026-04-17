@@ -1,301 +1,224 @@
-from flask import Flask, render_template, request, redirect, session, Response
+from flask import Flask, render_template, request, redirect, session, send_file
 import sqlite3
-import os
+import pandas as pd
 
 app = Flask(__name__)
-app.secret_key = "clave123"
+app.secret_key = "secret123"
 
-print("VERSION PRO FINAL")
-
+# 🔌 CONEXIÓN BD
 def get_db():
-    return sqlite3.connect("contabilidad.db")
+    conn = sqlite3.connect("contabilidad.db")
+    conn.row_factory = sqlite3.Row
+    return conn
 
-
-# LOGIN
+# 🔐 LOGIN
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        user = request.form["user"]
-        password = request.form["password"]
-
-        db = get_db()
-        u = db.execute(
-            "SELECT * FROM usuarios WHERE username=? AND password=?",
-            (user, password)
-        ).fetchone()
-
-        if u:
-            session["user_id"] = u[0]
-            return redirect("/dashboard")
-        else:
-            return "Error login"
-
+        session["user"] = request.form["usuario"]
+        return redirect("/dashboard")
     return render_template("login.html")
 
-
-# REGISTRO (MULTIUSUARIO)
-@app.route("/registro", methods=["GET","POST"])
-def registro():
-    if request.method == "POST":
-        user = request.form["user"]
-        password = request.form["password"]
-
-        db = get_db()
-        db.execute(
-            "INSERT INTO usuarios (username, password) VALUES (?, ?)",
-            (user, password)
-        )
-        db.commit()
-
-        return redirect("/")
-
-    return render_template("registro.html")
-
-
-# DASHBOARD
-@app.route("/dashboard")
-def dashboard():
-    if "user_id" not in session:
-        return redirect("/")
-
-    db = get_db()
-
-    clientes = db.execute(
-        "SELECT * FROM clientes WHERE usuario_id=?",
-        (session["user_id"],)
-    ).fetchall()
-
-    proveedores = db.execute(
-        "SELECT * FROM proveedores WHERE usuario_id=?",
-        (session["user_id"],)
-    ).fetchall()
-
-    bancos = db.execute(
-        "SELECT * FROM bancos WHERE usuario_id=?",
-        (session["user_id"],)
-    ).fetchall()
-
-    transacciones = db.execute(
-        "SELECT * FROM transacciones WHERE usuario_id=?",
-        (session["user_id"],)
-    ).fetchall()
-
-    ingresos = db.execute(
-        "SELECT COALESCE(SUM(monto),0) FROM transacciones WHERE tipo='ingreso' AND usuario_id=?",
-        (session["user_id"],)
-    ).fetchone()[0]
-
-    gastos = db.execute(
-        "SELECT COALESCE(SUM(monto),0) FROM transacciones WHERE tipo='gasto' AND usuario_id=?",
-        (session["user_id"],)
-    ).fetchone()[0]
-
-    utilidad = ingresos - gastos
-
-    return render_template(
-        "dashboard.html",
-        clientes=clientes,
-        proveedores=proveedores,
-        bancos=bancos,
-        transacciones=transacciones,
-        total_ingresos=ingresos,
-        total_gastos=gastos,
-        utilidad=utilidad
-    )
-
-
-# CLIENTE
-@app.route("/cliente", methods=["POST"])
-def cliente():
-    db = get_db()
-    db.execute(
-        "INSERT INTO clientes (nombre, usuario_id) VALUES (?, ?)",
-        (request.form["nombre"], session["user_id"])
-    )
-    db.commit()
-    return redirect("/dashboard")
-
-
-# PROVEEDOR
-@app.route("/proveedor", methods=["POST"])
-def proveedor():
-    db = get_db()
-    db.execute(
-        "INSERT INTO proveedores (nombre, usuario_id) VALUES (?, ?)",
-        (request.form["nombre"], session["user_id"])
-    )
-    db.commit()
-    return redirect("/dashboard")
-
-
-# BANCO
-@app.route("/banco", methods=["POST"])
-def banco():
-    db = get_db()
-    db.execute(
-        "INSERT INTO bancos (nombre, saldo, usuario_id) VALUES (?, ?, ?)",
-        (request.form["nombre"], request.form["saldo"], session["user_id"])
-    )
-    db.commit()
-    return redirect("/dashboard")
-
-
-# TRANSACCION
-@app.route("/transaccion", methods=["POST"])
-def transaccion():
-    db = get_db()
-
-    tipo = request.form["tipo"]
-    descripcion = request.form["descripcion"]
-    monto = float(request.form["monto"])
-    fecha = request.form["fecha"]
-    banco_id = request.form["banco"]
-
-    db.execute("""
-        INSERT INTO transacciones (tipo, descripcion, monto, fecha, usuario_id)
-        VALUES (?, ?, ?, ?, ?)
-    """, (tipo, descripcion, monto, fecha, session["user_id"]))
-
-    if tipo == "ingreso":
-        db.execute("UPDATE bancos SET saldo = saldo + ? WHERE id=?", (monto, banco_id))
-    else:
-        db.execute("UPDATE bancos SET saldo = saldo - ? WHERE id=?", (monto, banco_id))
-
-    db.commit()
-    return redirect("/dashboard")
-
-
-# EXPORTAR
-@app.route("/exportar")
-def exportar():
-    db = get_db()
-    data = db.execute(
-        "SELECT tipo, descripcion, monto, fecha FROM transacciones WHERE usuario_id=?",
-        (session["user_id"],)
-    ).fetchall()
-
-    def generar():
-        yield "tipo,descripcion,monto,fecha\n"
-        for row in data:
-            yield f"{row[0]},{row[1]},{row[2]},{row[3]}\n"
-
-    return Response(generar(), mimetype="text/csv")
-
-
-# BALANCE PRO
-@app.route("/balance")
-def balance():
-    if "user_id" not in session:
-        return redirect("/")
-
-    db = get_db()
-
-    activos = db.execute(
-        "SELECT COALESCE(SUM(saldo),0) FROM bancos WHERE usuario_id=?",
-        (session["user_id"],)
-    ).fetchone()[0]
-
-    ingresos = db.execute(
-        "SELECT COALESCE(SUM(monto),0) FROM transacciones WHERE tipo='ingreso' AND usuario_id=?",
-        (session["user_id"],)
-    ).fetchone()[0]
-
-    gastos = db.execute(
-        "SELECT COALESCE(SUM(monto),0) FROM transacciones WHERE tipo='gasto' AND usuario_id=?",
-        (session["user_id"],)
-    ).fetchone()[0]
-
-    patrimonio = ingresos - gastos
-    pasivos = 0
-
-    return render_template(
-        "balance.html",
-        activos=activos,
-        pasivos=pasivos,
-        patrimonio=patrimonio
-    )
-
-
-# REPORTES (ESTADO RESULTADOS)
-@app.route("/reportes")
-def reportes():
-    if "user_id" not in session:
-        return redirect("/")
-
-    db = get_db()
-
-    ingresos = db.execute("""
-        SELECT descripcion, SUM(monto)
-        FROM transacciones
-        WHERE tipo='ingreso' AND usuario_id=?
-        GROUP BY descripcion
-    """, (session["user_id"],)).fetchall()
-
-    gastos = db.execute("""
-        SELECT descripcion, SUM(monto)
-        FROM transacciones
-        WHERE tipo='gasto' AND usuario_id=?
-        GROUP BY descripcion
-    """, (session["user_id"],)).fetchall()
-
-    total_ingresos = sum([i[1] for i in ingresos])
-    total_gastos = sum([g[1] for g in gastos])
-    utilidad = total_ingresos - total_gastos
-
-    return render_template(
-        "reportes.html",
-        ingresos=ingresos,
-        gastos=gastos,
-        total_ingresos=total_ingresos,
-        total_gastos=total_gastos,
-        utilidad=utilidad
-    )
-
-
-# LOGOUT
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/")
 
+# 📊 DASHBOARD
+@app.route("/dashboard")
+def dashboard():
+    conn = get_db()
+    cursor = conn.cursor()
 
-# RESET DB (CORREGIDO)
-@app.route("/reset_db")
-def reset_db():
-    if os.path.exists("contabilidad.db"):
-        os.remove("contabilidad.db")
+    cursor.execute("SELECT * FROM clientes")
+    clientes = cursor.fetchall()
 
-    db = get_db()
+    cursor.execute("SELECT * FROM proveedores")
+    proveedores = cursor.fetchall()
 
-    db.execute("CREATE TABLE usuarios (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, password TEXT)")
-    db.execute("CREATE TABLE clientes (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, usuario_id INTEGER)")
-    db.execute("CREATE TABLE proveedores (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, usuario_id INTEGER)")
-    db.execute("CREATE TABLE bancos (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, saldo REAL, usuario_id INTEGER)")
+    cursor.execute("SELECT * FROM bancos")
+    bancos = cursor.fetchall()
 
-    db.execute("""
-    CREATE TABLE transacciones (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tipo TEXT,
-        descripcion TEXT,
-        monto REAL,
-        fecha TEXT,
-        usuario_id INTEGER
+    cursor.execute("SELECT * FROM transacciones")
+    transacciones = cursor.fetchall()
+
+    total_ingresos = sum(float(t["monto"]) for t in transacciones if t["tipo"] == "ingreso")
+    total_gastos = sum(float(t["monto"]) for t in transacciones if t["tipo"] == "gasto")
+    utilidad = total_ingresos - total_gastos
+
+    return render_template("dashboard.html",
+        clientes=clientes,
+        proveedores=proveedores,
+        bancos=bancos,
+        transacciones=transacciones,
+        total_ingresos=total_ingresos,
+        total_gastos=total_gastos,
+        utilidad=utilidad
     )
+
+# 👥 CLIENTES
+@app.route("/cliente", methods=["POST"])
+def cliente():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO clientes (nombre) VALUES (?)", (request.form["nombre"],))
+    conn.commit()
+    return redirect("/dashboard")
+
+# 🏢 PROVEEDORES
+@app.route("/proveedor", methods=["POST"])
+def proveedor():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO proveedores (nombre) VALUES (?)", (request.form["nombre"],))
+    conn.commit()
+    return redirect("/dashboard")
+
+# 🏦 BANCOS
+@app.route("/banco", methods=["POST"])
+def banco():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO bancos (nombre, saldo) VALUES (?, ?)",
+                   (request.form["nombre"], request.form["saldo"]))
+    conn.commit()
+    return redirect("/dashboard")
+
+# 💳 TRANSACCIONES + DIARIO AUTOMÁTICO
+@app.route("/transaccion", methods=["POST"])
+def transaccion():
+    conn = get_db()
+    cursor = conn.cursor()
+
+    tipo = request.form["tipo"]
+    banco_id = request.form["banco"]
+    descripcion = request.form["descripcion"]
+    monto = float(request.form["monto"])
+    fecha = request.form["fecha"]
+
+    # 🔹 Guardar transacción
+    cursor.execute("""
+    INSERT INTO transacciones (tipo, banco_id, descripcion, monto, fecha)
+    VALUES (?, ?, ?, ?, ?)
+    """, (tipo, banco_id, descripcion, monto, fecha))
+
+    # 🔹 Obtener cuentas
+    cursor.execute("SELECT id FROM cuentas WHERE nombre='Bancos'")
+    banco = cursor.fetchone()["id"]
+
+    cursor.execute("SELECT id FROM cuentas WHERE nombre='Ingresos'")
+    ingresos = cursor.fetchone()["id"]
+
+    cursor.execute("SELECT id FROM cuentas WHERE nombre='Gastos'")
+    gastos = cursor.fetchone()["id"]
+
+    # 🔹 Crear asiento contable
+    cursor.execute("INSERT INTO diario (fecha, descripcion) VALUES (?, ?)", (fecha, descripcion))
+    diario_id = cursor.lastrowid
+
+    if tipo == "ingreso":
+        cursor.execute("INSERT INTO detalle_diario VALUES (NULL, ?, ?, ?, 0)", (diario_id, banco, monto))
+        cursor.execute("INSERT INTO detalle_diario VALUES (NULL, ?, ?, 0, ?)", (diario_id, ingresos, monto))
+    else:
+        cursor.execute("INSERT INTO detalle_diario VALUES (NULL, ?, ?, ?, 0)", (diario_id, gastos, monto))
+        cursor.execute("INSERT INTO detalle_diario VALUES (NULL, ?, ?, 0, ?)", (diario_id, banco, monto))
+
+    conn.commit()
+    return redirect("/dashboard")
+
+# 📘 DIARIO
+@app.route("/diario")
+def diario():
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT d.fecha, d.descripcion, c.nombre, dd.debe, dd.haber
+    FROM detalle_diario dd
+    JOIN diario d ON d.id = dd.diario_id
+    JOIN cuentas c ON c.id = dd.cuenta_id
+    ORDER BY d.fecha DESC
     """)
 
-    db.commit()
-    return "Base reiniciada OK"
+    datos = cursor.fetchall()
+    return render_template("diario.html", datos=datos)
 
+# 📊 BALANCE GENERAL
+@app.route("/balance")
+def balance():
+    conn = get_db()
+    cursor = conn.cursor()
 
-# CREAR ADMIN
-@app.route("/crear_admin")
-def crear_admin():
-    db = get_db()
-    db.execute("DELETE FROM usuarios")
-    db.execute("INSERT INTO usuarios (username, password) VALUES ('admin','1234')")
-    db.commit()
-    return "admin creado"
+    cursor.execute("""
+    SELECT c.tipo, SUM(dd.debe), SUM(dd.haber)
+    FROM detalle_diario dd
+    JOIN cuentas c ON c.id = dd.cuenta_id
+    GROUP BY c.tipo
+    """)
 
+    datos = cursor.fetchall()
 
+    activos = pasivos = patrimonio = 0
+
+    for d in datos:
+        saldo = (d[1] or 0) - (d[2] or 0)
+
+        if d[0] == "Activo":
+            activos += saldo
+        elif d[0] == "Pasivo":
+            pasivos += saldo
+        elif d[0] == "Patrimonio":
+            patrimonio += saldo
+
+    return render_template("balance.html",
+        activos=activos,
+        pasivos=pasivos,
+        patrimonio=patrimonio
+    )
+
+# 📈 ESTADO DE RESULTADOS
+@app.route("/resultados")
+def resultados():
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT c.tipo, SUM(dd.debe), SUM(dd.haber)
+    FROM detalle_diario dd
+    JOIN cuentas c ON c.id = dd.cuenta_id
+    WHERE c.tipo IN ('Ingreso','Gasto')
+    GROUP BY c.tipo
+    """)
+
+    datos = cursor.fetchall()
+
+    ingresos = gastos = 0
+
+    for d in datos:
+        if d[0] == "Ingreso":
+            ingresos += (d[2] or 0) - (d[1] or 0)
+        elif d[0] == "Gasto":
+            gastos += (d[1] or 0) - (d[2] or 0)
+
+    utilidad = ingresos - gastos
+
+    return render_template("resultados.html",
+        ingresos=ingresos,
+        gastos=gastos,
+        utilidad=utilidad
+    )
+
+# 📥 EXPORTAR EXCEL
+@app.route("/exportar")
+def exportar():
+    conn = get_db()
+    df = pd.read_sql_query("SELECT * FROM transacciones", conn)
+
+    archivo = "reporte.xlsx"
+    df.to_excel(archivo, index=False)
+
+    return send_file(archivo, as_attachment=True)
+
+# 🚀 RUN
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
