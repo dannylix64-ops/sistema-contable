@@ -208,6 +208,14 @@ def resultados():
         utilidad=utilidad
     )
 
+@app.route("/test")
+def test():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM cuentas")
+    data = cursor.fetchall()
+    return str(data)
+
 # 📥 EXPORTAR EXCEL
 @app.route("/exportar")
 def exportar():
