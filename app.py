@@ -5,11 +5,84 @@ import pandas as pd
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-# 🔌 CONEXIÓN BD
+# 🔌 CONEXIÓN
 def get_db():
     conn = sqlite3.connect("contabilidad.db")
     conn.row_factory = sqlite3.Row
     return conn
+
+# 🧱 CREAR BD AUTOMÁTICA (CLAVE PARA RENDER)
+def init_db():
+    conn = sqlite3.connect("contabilidad.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS clientes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS proveedores (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS bancos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT,
+        saldo REAL
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS transacciones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT,
+        banco_id INTEGER,
+        descripcion TEXT,
+        monto REAL,
+        fecha TEXT
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS cuentas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        codigo TEXT,
+        nombre TEXT,
+        tipo TEXT
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS diario (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        fecha TEXT,
+        descripcion TEXT
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS detalle_diario (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        diario_id INTEGER,
+        cuenta_id INTEGER,
+        debe REAL,
+        haber REAL
+    )
+    """)
+
+    # cuentas base
+    cursor.execute("INSERT OR IGNORE INTO cuentas (id, codigo, nombre, tipo) VALUES (1,'1.1','Bancos','Activo')")
+    cursor.execute("INSERT OR IGNORE INTO cuentas (id, codigo, nombre, tipo) VALUES (2,'4.1','Ingresos','Ingreso')")
+    cursor.execute("INSERT OR IGNORE INTO cuentas (id, codigo, nombre, tipo) VALUES (3,'5.1','Gastos','Gasto')")
+
+    conn.commit()
+    conn.close()
 
 # 🔐 LOGIN
 @app.route("/", methods=["GET", "POST"])
@@ -84,7 +157,7 @@ def banco():
     conn.commit()
     return redirect("/dashboard")
 
-# 💳 TRANSACCIONES + DIARIO AUTOMÁTICO
+# 💳 TRANSACCIONES + CONTABILIDAD AUTOMÁTICA
 @app.route("/transaccion", methods=["POST"])
 def transaccion():
     conn = get_db()
@@ -96,13 +169,12 @@ def transaccion():
     monto = float(request.form["monto"])
     fecha = request.form["fecha"]
 
-    # 🔹 Guardar transacción
     cursor.execute("""
     INSERT INTO transacciones (tipo, banco_id, descripcion, monto, fecha)
     VALUES (?, ?, ?, ?, ?)
     """, (tipo, banco_id, descripcion, monto, fecha))
 
-    # 🔹 Obtener cuentas
+    # cuentas
     cursor.execute("SELECT id FROM cuentas WHERE nombre='Bancos'")
     banco = cursor.fetchone()["id"]
 
@@ -112,7 +184,6 @@ def transaccion():
     cursor.execute("SELECT id FROM cuentas WHERE nombre='Gastos'")
     gastos = cursor.fetchone()["id"]
 
-    # 🔹 Crear asiento contable
     cursor.execute("INSERT INTO diario (fecha, descripcion) VALUES (?, ?)", (fecha, descripcion))
     diario_id = cursor.lastrowid
 
@@ -143,7 +214,7 @@ def diario():
     datos = cursor.fetchall()
     return render_template("diario.html", datos=datos)
 
-# 📊 BALANCE GENERAL
+# 📊 BALANCE
 @app.route("/balance")
 def balance():
     conn = get_db()
@@ -176,7 +247,7 @@ def balance():
         patrimonio=patrimonio
     )
 
-# 📈 ESTADO DE RESULTADOS
+# 📈 RESULTADOS
 @app.route("/resultados")
 def resultados():
     conn = get_db()
@@ -208,25 +279,14 @@ def resultados():
         utilidad=utilidad
     )
 
-@app.route("/test")
-def test():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM cuentas")
-    data = cursor.fetchall()
-    return str(data)
-
-# 📥 EXPORTAR EXCEL
+# 📥 EXPORTAR
 @app.route("/exportar")
 def exportar():
     conn = get_db()
     df = pd.read_sql_query("SELECT * FROM transacciones", conn)
-
     archivo = "reporte.xlsx"
     df.to_excel(archivo, index=False)
-
     return send_file(archivo, as_attachment=True)
 
-# 🚀 RUN
-if __name__ == "__main__":
-    app.run(debug=True)
+# 🚀 INICIAR BD SIEMPRE
+init_db()
